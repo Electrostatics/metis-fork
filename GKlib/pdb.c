@@ -131,7 +131,8 @@ that structure.
 /************************************************************************/
 pdbf *gk_readpdbfile(char *fname) { /* {{{ */
 	int i=0, res=0; 
-	char linetype[6];
+	char linetype[7];
+	int fields;
 	int  aserial;
 	char aname[5] = "    \0";
 	char altLoc   = ' ';
@@ -155,20 +156,24 @@ pdbf *gk_readpdbfile(char *fname) { /* {{{ */
   int nresatoms;
 
 	int atoms=0, residues=0, cas=0, bbs=0, firstres=1;
-	pdbf *toFill = gk_malloc(sizeof(pdbf),"fillme");
+	pdbf *toFill = NULL;
 	FILE *FPIN; 
 
 	FPIN = gk_fopen(fname,"r",fname);	
 	while(fgets(line, 256, FPIN))	{
-		sscanf(line,"%s ",linetype);
+		if(sscanf(line,"%6s",linetype) != 1)
+			continue;
 		/* It seems the only reliable parts are through temperature, so we only use these parts */
 		/* if(strstr(linetype, "ATOM") != NULL || strstr(linetype, "HETATM") != NULL) { */
 		if(strstr(linetype, "ATOM") != NULL) {
-			sscanf(line, "%6s%5d%*1c%4c%1c%3c%*1c%1c%4d%1c%*3c%8lf%8lf%8lf%6lf%6lf %c\n",
-			linetype,&aserial,aname,&altLoc,rname,&chainid,&rserial,&icode,&x,&y,&z,&opcy,&tmpt,&element);
-			sscanf(linetype, " %s ",linetype);
-			sscanf(aname, " %s ",aname);
-			sscanf(rname, " %s ",rname);
+			if(strncmp(line, "ATOM  ", 6) != 0)
+				goto invalid_record;
+			fields = sscanf(line, "%*6c%5d%*1c%4c%1c%3c%*1c%1c%4d%1c%*3c%8lf%8lf%8lf%6lf%6lf %c\n",
+			&aserial,aname,&altLoc,rname,&chainid,&rserial,&icode,&x,&y,&z,&opcy,&tmpt,&element);
+			if(fields < 12)
+				goto invalid_record;
+			gk_strhprune(gk_strtprune(aname, " "), " ");
+			gk_strhprune(gk_strtprune(rname, " "), " ");
 			if(altLoc != ' ') {
 				corruption = corruption|CRP_ALTLOCS;	
 			}
@@ -203,6 +208,7 @@ pdbf *gk_readpdbfile(char *fname) { /* {{{ */
 	fclose(FPIN);
 
 	/* printf("File has coordinates for %d atoms in %d residues\n",atoms,residues); */
+	toFill = gk_malloc(sizeof(pdbf),"fillme");
 	toFill->natoms      = atoms;
 	toFill->ncas        = cas;
 	toFill->nbbs        = bbs;
@@ -219,16 +225,22 @@ pdbf *gk_readpdbfile(char *fname) { /* {{{ */
 
 	FPIN = gk_fopen(fname,"r",fname);	
 	while(fgets(line, 256, FPIN))	{
-		sscanf(line,"%s ",linetype);
+		if(sscanf(line,"%6s",linetype) != 1)
+			continue;
 		/* It seems the only reliable parts are through temperature, so we only use these parts */
 		/* if(strstr(linetype, "ATOM") != NULL || strstr(linetype, "HETATM") != NULL) { */
 		if(strstr(linetype, "ATOM") != NULL ) {
 
 			/* to ensure our memory doesn't get corrupted by the biologists, we only read this far */
-			sscanf(line, "%6s%5d%*1c%4c%1c%3c%*1c%1c%4d%1c%*3c%8lf%8lf%8lf%6lf%6lf %c\n",
-			linetype,&aserial,aname,&altLoc,rname,&chainid,&rserial,&icode,&x,&y,&z,&opcy,&tmpt,&element);
-			sscanf(aname, "%s",aname);
-			sscanf(rname, "%s",rname);
+			if(strncmp(line, "ATOM  ", 6) != 0 || i >= atoms)
+				goto invalid_record;
+			element = ' ';
+			fields = sscanf(line, "%*6c%5d%*1c%4c%1c%3c%*1c%1c%4d%1c%*3c%8lf%8lf%8lf%6lf%6lf %c\n",
+			&aserial,aname,&altLoc,rname,&chainid,&rserial,&icode,&x,&y,&z,&opcy,&tmpt,&element);
+			if(fields < 12)
+				goto invalid_record;
+			gk_strhprune(gk_strtprune(aname, " "), " ");
+			gk_strhprune(gk_strtprune(rname, " "), " ");
 
 			if(firstres == 1) {
 				toFill->resSeq[res] = gk_threetoone(rname);
@@ -238,10 +250,10 @@ pdbf *gk_readpdbfile(char *fname) { /* {{{ */
 				firstres = 0;
 			}
 			if(oldRserial != rserial) {
-        /* we're changing residues. store the center of mass from the last one & reset */
-        toFill->cm[res-1].x = avgx/nresatoms;
-        toFill->cm[res-1].y = avgy/nresatoms;
-        toFill->cm[res-1].z = avgz/nresatoms;
+              /* we're changing residues. store the center of mass from the last one & reset */
+              toFill->cm[res-1].x = avgx/nresatoms;
+              toFill->cm[res-1].y = avgy/nresatoms;
+              toFill->cm[res-1].z = avgz/nresatoms;
 	      avgx = 0.0; avgy = 0.0; avgz = 0.0;
         nresatoms = 0;
         toFill->cm[res-1].name = toFill->resSeq[res-1];
@@ -285,9 +297,11 @@ pdbf *gk_readpdbfile(char *fname) { /* {{{ */
 		}
 	}
   /* get that last average */
-  toFill->cm[res-1].x = avgx/nresatoms;
-  toFill->cm[res-1].y = avgy/nresatoms;
-  toFill->cm[res-1].z = avgz/nresatoms;
+  if(nresatoms > 0) {
+    toFill->cm[res-1].x = avgx/nresatoms;
+    toFill->cm[res-1].y = avgy/nresatoms;
+    toFill->cm[res-1].z = avgz/nresatoms;
+  }
 	/* Begin test code */
 	if(cas != residues) {
 		printf("Number of residues and CA coordinates differs by %d (!)\n",residues-cas);
@@ -309,6 +323,16 @@ pdbf *gk_readpdbfile(char *fname) { /* {{{ */
 	/* if(corruption == 0) 
 		printf("File was clean!\n"); */
 	return(toFill);
+
+invalid_record:
+	fclose(FPIN);
+	if(toFill != NULL) {
+		toFill->natoms = i;
+		toFill->nresidues = res;
+		gk_freepdbf(toFill);
+	}
+	gk_errexit(SIGERR, "Invalid ATOM record in PDB file %s.\n", fname);
+	return NULL;
 } /* }}} */
 
 /************************************************************************/
