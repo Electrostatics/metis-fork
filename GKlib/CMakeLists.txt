@@ -13,6 +13,7 @@ if(UNIX)
 endif(UNIX)
 
 include_directories("test")
+enable_testing()
 add_subdirectory("test")
 
 install(TARGETS GKlib
