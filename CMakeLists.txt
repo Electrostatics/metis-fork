@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 2.8)
 project(METIS)
 
+option(METIS_BUILD_TESTS "Build reader regression tests" OFF)
+if(METIS_BUILD_TESTS)
+  enable_testing()
+endif()
+
 set(GKLIB_PATH "GKlib" CACHE PATH "path to GKlib")
 set(SHARED FALSE CACHE BOOL "build a shared library")
 
