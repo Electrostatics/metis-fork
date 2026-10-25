@@ -44,7 +44,7 @@ void ComputePartitionInfoBipartite(graph_t *graph, idx_t nparts, idx_t *where)
   printf("%"PRIDX"-way Cut: %5"PRIDX", Vol: %5"PRIDX", ", nparts, ComputeCut(graph, where), ComputeVolume(graph, where));
 
   /* Compute balance information */
-  kpwgts = ismalloc(ncon*nparts, 0, "ComputePartitionInfo: kpwgts");
+  kpwgts = ismalloc((size_t)ncon*nparts, 0, "ComputePartitionInfo: kpwgts");
 
   for (i=0; i<nvtxs; i++) {
     for (j=0; j<ncon; j++) 
@@ -67,18 +67,18 @@ void ComputePartitionInfoBipartite(graph_t *graph, idx_t nparts, idx_t *where)
 
 
   /* Compute p-adjncy information */
-  padjncy = ismalloc(nparts*nparts, 0, "ComputePartitionInfo: padjncy");
-  padjwgt = ismalloc(nparts*nparts, 0, "ComputePartitionInfo: padjwgt");
-  padjcut = ismalloc(nparts*nparts, 0, "ComputePartitionInfo: padjwgt");
+  padjncy = ismalloc((size_t)nparts*nparts, 0, "ComputePartitionInfo: padjncy");
+  padjwgt = ismalloc((size_t)nparts*nparts, 0, "ComputePartitionInfo: padjwgt");
+  padjcut = ismalloc((size_t)nparts*nparts, 0, "ComputePartitionInfo: padjwgt");
 
   iset(nparts, 0, kpwgts);
   for (i=0; i<nvtxs; i++) {
     for (j=xadj[i]; j<xadj[i+1]; j++) {
       if (where[i] != where[adjncy[j]]) {
-        padjncy[where[i]*nparts+where[adjncy[j]]] = 1;
-        padjcut[where[i]*nparts+where[adjncy[j]]] += adjwgt[j];
+        padjncy[(size_t)where[i]*nparts+where[adjncy[j]]] = 1;
+        padjcut[(size_t)where[i]*nparts+where[adjncy[j]]] += adjwgt[j];
         if (kpwgts[where[adjncy[j]]] == 0) {
-          padjwgt[where[i]*nparts+where[adjncy[j]]] += vsize[i];
+          padjwgt[(size_t)where[i]*nparts+where[adjncy[j]]] += vsize[i];
           kpwgts[where[adjncy[j]]] = 1;
         }
       }
@@ -88,19 +88,19 @@ void ComputePartitionInfoBipartite(graph_t *graph, idx_t nparts, idx_t *where)
   }
 
   for (i=0; i<nparts; i++)
-    kpwgts[i] = isum(nparts, padjncy+i*nparts, 1);
+    kpwgts[i] = isum(nparts, padjncy+(size_t)i*nparts, 1);
   printf("Min/Max/Avg/Bal # of adjacent     subdomains: %5"PRIDX" %5"PRIDX" %5"PRIDX" %7.3"PRREAL"\n",
     kpwgts[iargmin(nparts, kpwgts)], kpwgts[iargmax(nparts, kpwgts)], isum(nparts, kpwgts, 1)/nparts, 
     1.0*nparts*kpwgts[iargmax(nparts, kpwgts)]/(1.0*isum(nparts, kpwgts, 1)));
 
   for (i=0; i<nparts; i++)
-    kpwgts[i] = isum(nparts, padjcut+i*nparts, 1);
+    kpwgts[i] = isum(nparts, padjcut+(size_t)i*nparts, 1);
   printf("Min/Max/Avg/Bal # of adjacent subdomain cuts: %5"PRIDX" %5"PRIDX" %5"PRIDX" %7.3"PRREAL"\n",
     kpwgts[iargmin(nparts, kpwgts)], kpwgts[iargmax(nparts, kpwgts)], isum(nparts, kpwgts, 1)/nparts, 
     1.0*nparts*kpwgts[iargmax(nparts, kpwgts)]/(1.0*isum(nparts, kpwgts, 1)));
 
   for (i=0; i<nparts; i++)
-    kpwgts[i] = isum(nparts, padjwgt+i*nparts, 1);
+    kpwgts[i] = isum(nparts, padjwgt+(size_t)i*nparts, 1);
   printf("Min/Max/Avg/Bal/Frac # of interface    nodes: %5"PRIDX" %5"PRIDX" %5"PRIDX" %7.3"PRREAL" %7.3"PRREAL"\n",
     kpwgts[iargmin(nparts, kpwgts)], kpwgts[iargmax(nparts, kpwgts)], isum(nparts, kpwgts, 1)/nparts, 
     1.0*nparts*kpwgts[iargmax(nparts, kpwgts)]/(1.0*isum(nparts, kpwgts, 1)), 1.0*isum(nparts, kpwgts, 1)/(1.0*nvtxs));

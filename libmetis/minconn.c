@@ -690,14 +690,14 @@ void PrintSubDomainGraph(graph_t *graph, idx_t nparts, idx_t *where)
   adjncy = graph->adjncy;
   adjwgt = graph->adjwgt;
 
-  pmat = ismalloc(nparts*nparts, 0, "ComputeSubDomainGraph: pmat");
+  pmat = ismalloc((size_t)nparts*nparts, 0, "ComputeSubDomainGraph: pmat");
 
   for (i=0; i<nvtxs; i++) {
     me = where[i];
     for (j=xadj[i]; j<xadj[i+1]; j++) {
       k = adjncy[j];
       if (where[k] != me) 
-        pmat[me*nparts+where[k]] += adjwgt[j];
+        pmat[(size_t)me*nparts+where[k]] += adjwgt[j];
     }
   }
 
@@ -705,7 +705,7 @@ void PrintSubDomainGraph(graph_t *graph, idx_t nparts, idx_t *where)
   total = max = 0;
   for (i=0; i<nparts; i++) {
     for (k=0, j=0; j<nparts; j++) {
-      if (pmat[i*nparts+j] > 0)
+      if (pmat[(size_t)i*nparts+j] > 0)
         k++;
     }
     total += k;
@@ -715,8 +715,8 @@ void PrintSubDomainGraph(graph_t *graph, idx_t nparts, idx_t *where)
 /*
     printf("%2"PRIDX" -> %2"PRIDX"  ", i, k);
     for (j=0; j<nparts; j++) {
-      if (pmat[i*nparts+j] > 0)
-        printf("[%2"PRIDX" %4"PRIDX"] ", j, pmat[i*nparts+j]);
+      if (pmat[(size_t)i*nparts+j] > 0)
+        printf("[%2"PRIDX" %4"PRIDX"] ", j, pmat[(size_t)i*nparts+j]);
     }
     printf("\n");
 */

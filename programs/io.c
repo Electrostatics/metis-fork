@@ -330,7 +330,10 @@ void ReadTPwgts(params_t *params, idx_t ncon)
   size_t lnlen=0;
   FILE *fpin;
 
-  params->tpwgts = rsmalloc(params->nparts*ncon, -1.0, "ReadTPwgts: tpwgts");
+  if (params->nparts <= 0 || ncon <= 0 || params->nparts > IDX_MAX/ncon - 1)
+    errexit("The number of partitions times constraints is too large.\n");
+
+  params->tpwgts = rsmalloc((size_t)params->nparts*ncon, -1.0, "ReadTPwgts: tpwgts");
 
   if (params->tpwgtsfile == NULL) {
     for (i=0; i<params->nparts; i++) {

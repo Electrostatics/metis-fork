@@ -787,7 +787,7 @@ void Greedy_McKWayCutOptimize(ctrl_t *ctrl, graph_t *graph, idx_t niter,
      printf("%s: [%6"PRIDX" %6"PRIDX" %6"PRIDX"], Bal: %5.3"PRREAL"(%.3"PRREAL")," 
             " Nv-Nb[%6"PRIDX" %6"PRIDX"], Cut: %6"PRIDX", (%"PRIDX")",
             (omode == OMODE_REFINE ? "GRC" : "GBC"),
-            imin(nparts*ncon, pwgts), imax(nparts*ncon, pwgts), imax(nparts*ncon, maxwgt),
+            imin((size_t)nparts*ncon, pwgts), imax((size_t)nparts*ncon, pwgts), imax((size_t)nparts*ncon, maxwgt),
             ComputeLoadImbalance(graph, nparts, pijbm), origbal,
             graph->nvtxs, graph->nbnd, graph->mincut, niter);
      if (ctrl->minconn) 
@@ -994,7 +994,7 @@ void Greedy_McKWayCutOptimize(ctrl_t *ctrl, graph_t *graph, idx_t niter,
     if (ctrl->dbglvl&METIS_DBG_REFINE) {
        printf("\t[%6"PRIDX" %6"PRIDX"], Bal: %5.3"PRREAL", Nb: %6"PRIDX"."
               " Nmoves: %5"PRIDX", Cut: %6"PRIDX", Vol: %6"PRIDX,
-              imin(nparts*ncon, pwgts), imax(nparts*ncon, pwgts), 
+              imin((size_t)nparts*ncon, pwgts), imax((size_t)nparts*ncon, pwgts), 
               ComputeLoadImbalance(graph, nparts, pijbm), 
               graph->nbnd, nmoved, graph->mincut, ComputeVolume(graph, where));
        if (ctrl->minconn) 
@@ -1131,7 +1131,7 @@ void Greedy_McKWayVolOptimize(ctrl_t *ctrl, graph_t *graph, idx_t niter,
      printf("%s: [%6"PRIDX" %6"PRIDX" %6"PRIDX"], Bal: %5.3"PRREAL"(%.3"PRREAL"),"
          ", Nv-Nb[%6"PRIDX" %6"PRIDX"], Cut: %5"PRIDX", Vol: %5"PRIDX", (%"PRIDX")",
          (omode == OMODE_REFINE ? "GRV" : "GBV"),
-         imin(nparts*ncon, pwgts), imax(nparts*ncon, pwgts), imax(nparts*ncon, maxwgt),
+         imin((size_t)nparts*ncon, pwgts), imax((size_t)nparts*ncon, pwgts), imax((size_t)nparts*ncon, maxwgt),
          ComputeLoadImbalance(graph, nparts, pijbm), origbal,
          graph->nvtxs, graph->nbnd, graph->mincut, graph->minvol, niter);
      if (ctrl->minconn) 
@@ -1334,7 +1334,7 @@ void Greedy_McKWayVolOptimize(ctrl_t *ctrl, graph_t *graph, idx_t niter,
     if (ctrl->dbglvl&METIS_DBG_REFINE) {
        printf("\t[%6"PRIDX" %6"PRIDX"], Bal: %5.3"PRREAL", Nb: %6"PRIDX"."
               " Nmoves: %5"PRIDX", Cut: %6"PRIDX", Vol: %6"PRIDX,
-              imin(nparts*ncon, pwgts), imax(nparts*ncon, pwgts), 
+              imin((size_t)nparts*ncon, pwgts), imax((size_t)nparts*ncon, pwgts), 
               ComputeLoadImbalance(graph, nparts, pijbm), 
               graph->nbnd, nmoved, graph->mincut, graph->minvol);
        if (ctrl->minconn) 

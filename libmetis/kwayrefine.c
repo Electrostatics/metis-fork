@@ -116,7 +116,7 @@ void RefineKWay(ctrl_t *ctrl, graph_t *orggraph, graph_t *graph)
 void AllocateKWayPartitionMemory(ctrl_t *ctrl, graph_t *graph)
 {
 
-  graph->pwgts  = imalloc(ctrl->nparts*graph->ncon, "AllocateKWayPartitionMemory: pwgts");
+  graph->pwgts  = imalloc((size_t)ctrl->nparts*graph->ncon, "AllocateKWayPartitionMemory: pwgts");
   graph->where  = imalloc(graph->nvtxs,  "AllocateKWayPartitionMemory: where");
   graph->bndptr = imalloc(graph->nvtxs,  "AllocateKWayPartitionMemory: bndptr");
   graph->bndind = imalloc(graph->nvtxs,  "AllocateKWayPartitionMemory: bndind");
@@ -161,7 +161,7 @@ void ComputeKWayPartitionParams(ctrl_t *ctrl, graph_t *graph)
   adjwgt = graph->adjwgt;
 
   where  = graph->where;
-  pwgts  = iset(nparts*ncon, 0, graph->pwgts);
+  pwgts  = iset((size_t)nparts*ncon, 0, graph->pwgts);
   bndind = graph->bndind;
   bndptr = iset(nvtxs, -1, graph->bndptr);
 
@@ -492,7 +492,7 @@ void ProjectKWayPartition(ctrl_t *ctrl, graph_t *graph)
   }
 
   graph->mincut = cgraph->mincut;
-  icopy(nparts*graph->ncon, cgraph->pwgts, graph->pwgts);
+  icopy((size_t)nparts*graph->ncon, cgraph->pwgts, graph->pwgts);
 
   FreeGraph(&graph->coarser);
   graph->coarser = NULL;

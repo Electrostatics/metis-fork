@@ -194,8 +194,8 @@ graph_t *FixGraph(graph_t *graph)
 
   /* deal with vertex weights/sizes */
   ngraph->ncon  = graph->ncon;
-  ngraph->vwgt  = icopy(nvtxs*graph->ncon, graph->vwgt, 
-                        imalloc(nvtxs*graph->ncon, "FixGraph: vwgt"));
+  ngraph->vwgt  = icopy((size_t)nvtxs*graph->ncon, graph->vwgt, 
+                        imalloc((size_t)nvtxs*graph->ncon, "FixGraph: vwgt"));
 
   ngraph->vsize = ismalloc(nvtxs, 1, "FixGraph: vsize");
   if (graph->vsize)
