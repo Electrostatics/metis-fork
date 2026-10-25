@@ -487,7 +487,7 @@ gk_csr_t *gk_csr_Read(char *filename, int format, int readvals, int numbering)
   for (ncols=0, rowptr[0]=0, k=0, i=0; i<nrows; i++) {
     do {
       if (gk_getline(&line, &lnlen, fpin) == -1)
-        gk_errexit(SIGERR, "Premature end of input file: file while reading row %d\n", i);
+        gk_errexit(SIGERR, "Premature end of input file: file while reading row %zd\n", i);
     } while (line[0] == '%');
 
     head = line;
@@ -517,7 +517,7 @@ gk_csr_t *gk_csr_Read(char *filename, int format, int readvals, int numbering)
 #endif
         if (tail == head)
           errexit("The line for vertex %zd does not have enough weights "
-                  "for the %d constraints.\n", i+1, ncon);
+                  "for the %zu constraints.\n", i+1, ncon);
         if (mat->rwgts[i*ncon+l] < 0)
           errexit("The weight vertex %zd and constraint %zd must be >= 0\n", i+1, l);
         head = tail;

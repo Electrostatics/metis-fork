@@ -161,7 +161,7 @@ gk_graph_t *gk_graph_Read(char *filename, int format, int isfewgts,
   for (graph->xadj[0]=0, k=0, i=0; i<nvtxs; i++) {
     do {
       if (gk_getline(&line, &lnlen, fpin) == -1)
-        gk_errexit(SIGERR, "Pregraphure end of input file: file while reading row %d\n", i);
+        gk_errexit(SIGERR, "Pregraphure end of input file: file while reading row %zd\n", i);
     } while (line[0] == '%');
 
     head = line;
@@ -201,7 +201,7 @@ gk_graph_t *gk_graph_Read(char *filename, int format, int isfewgts,
 #endif
           if (tail == head)
             gk_errexit(SIGERR, "The line for vertex %zd does not have enough weights "
-                    "for the %d constraints.\n", i+1, ncon);
+                    "for the %zu constraints.\n", i+1, ncon);
           if (graph->fvwgts[i*ncon+l] < 0)
             gk_errexit(SIGERR, "The weight vertex %zd and constraint %zd must be >= 0\n", i+1, l);
         }
@@ -209,7 +209,7 @@ gk_graph_t *gk_graph_Read(char *filename, int format, int isfewgts,
           graph->ivwgts[i*ncon+l] = strtol(head, &tail, 0);
           if (tail == head)
             gk_errexit(SIGERR, "The line for vertex %zd does not have enough weights "
-                    "for the %d constraints.\n", i+1, ncon);
+                    "for the %zu constraints.\n", i+1, ncon);
           if (graph->ivwgts[i*ncon+l] < 0)
             gk_errexit(SIGERR, "The weight vertex %zd and constraint %zd must be >= 0\n", i+1, l);
         }
