@@ -13,9 +13,50 @@
  */
 
 #include "metisbin.h"
+#include <errno.h>
 
+static void ReaderInputError(const char *message)
+{
+  errexit("Invalid reader input: %s\n", message);
+  exit(EXIT_FAILURE);
+}
 
+static size_t ReaderWeightCount(idx_t count, idx_t ncon)
+{
+  if(count <= 0 || ncon <= 0 ||
+      (uintmax_t)count > (uintmax_t)IDX_MAX/(uintmax_t)ncon ||
+      (uintmax_t)count > (uintmax_t)(SIZE_MAX/sizeof(idx_t))/(uintmax_t)ncon)
+    ReaderInputError("weight dimensions exceed supported allocation/index limits");
+  return (size_t)count*(size_t)ncon;
+}
 
+static idx_t ReadWeight(char *input, char **end)
+{
+  intmax_t value;
+  errno = 0;
+  value = strtoimax(input, end, 10);
+  if(*end == input || errno == ERANGE || value < 0 || value > IDX_MAX)
+    ReaderInputError("missing, negative, or out-of-range weight");
+  return (idx_t)value;
+}
+
+static int ReadHeader(char *input, idx_t *values, int count)
+{
+  int i;
+  char *end;
+  intmax_t value;
+  for(i=0; i<count; i++) {
+    errno = 0;
+    value = strtoimax(input, &end, 10);
+    if(end == input)
+      break;
+    if(errno == ERANGE || value < 0 || value > IDX_MAX)
+      ReaderInputError("negative or out-of-range header value");
+    values[i] = (idx_t)value;
+    input = end;
+  }
+  return i;
+}
 /*************************************************************************/
 /*! This function reads in a sparse graph */
 /*************************************************************************/
@@ -25,6 +66,8 @@ graph_t *ReadGraph(params_t *params)
   idx_t *xadj, *adjncy, *vwgt, *adjwgt, *vsize;
   char *line=NULL, fmtstr[256], *curstr, *newstr;
   size_t lnlen=0;
+  size_t nweights;
+  idx_t header[4] = {0, 0, 0, 0};
   FILE *fpin;
   graph_t *graph;
 
@@ -43,8 +86,11 @@ graph_t *ReadGraph(params_t *params)
 
 
   fmt = ncon = 0;
-  nfields = sscanf(line, "%"SCIDX" %"SCIDX" %"SCIDX" %"SCIDX, 
-                &(graph->nvtxs), &(graph->nedges), &fmt, &ncon);
+  nfields = ReadHeader(line, header, 4);
+  graph->nvtxs = header[0];
+  graph->nedges = header[1];
+  fmt = header[2];
+  ncon = header[3];
 
   if (nfields < 2) 
     errexit("The input file does not specify the number of vertices and edges.\n");
@@ -72,12 +118,17 @@ graph_t *ReadGraph(params_t *params)
       "Make sure that the fmt parameter is set to either 10 or 11.\n"
       "------------------------------------------------------------------------------\n", ncon);
 
+  if(graph->nvtxs == IDX_MAX || graph->nedges > IDX_MAX/2 ||
+      (uintmax_t)graph->nvtxs+1 > SIZE_MAX/sizeof(idx_t) ||
+      (uintmax_t)graph->nedges > SIZE_MAX/sizeof(idx_t)/2)
+    ReaderInputError("graph dimensions exceed supported allocation/index limits");
+  nweights = ReaderWeightCount(graph->nvtxs, ncon == 0 ? 1 : ncon);
   graph->nedges *=2;
   ncon = graph->ncon = (ncon == 0 ? 1 : ncon);
 
   xadj   = graph->xadj   = ismalloc(graph->nvtxs+1, 0, "ReadGraph: xadj");
   adjncy = graph->adjncy = imalloc(graph->nedges, "ReadGraph: adjncy");
-  vwgt   = graph->vwgt   = ismalloc(ncon*graph->nvtxs, 1, "ReadGraph: vwgt");
+  vwgt   = graph->vwgt   = ismalloc(nweights, 1, "ReadGraph: vwgt");
   adjwgt = graph->adjwgt = ismalloc(graph->nedges, 1, "ReadGraph: adjwgt");
   vsize  = graph->vsize  = ismalloc(graph->nvtxs, 1, "ReadGraph: vsize");
 
@@ -108,12 +159,7 @@ graph_t *ReadGraph(params_t *params)
     /* Read vertex weights */
     if (readvw) {
       for (l=0; l<ncon; l++) {
-        vwgt[i*ncon+l] = strtoidx(curstr, &newstr, 10);
-        if (newstr == curstr)
-          errexit("The line for vertex %"PRIDX" does not have enough weights "
-                  "for the %"PRIDX" constraints.\n", i+1, ncon);
-        if (vwgt[i*ncon+l] < 0)
-          errexit("The weight vertex %"PRIDX" and constraint %"PRIDX" must be >= 0\n", i+1, l);
+        vwgt[(size_t)i*(size_t)ncon+(size_t)l] = ReadWeight(curstr, &newstr);
         curstr = newstr;
       }
     }
@@ -179,9 +225,10 @@ mesh_t *ReadMesh(params_t *params)
 {
   idx_t i, j, k, l, nfields, ncon, node;
   idx_t *eptr, *eind, *ewgt;
-  size_t nlines, ntokens;
+  size_t nlines, ntokens, nweights;
   char *line=NULL, *curstr, *newstr;
   size_t lnlen=0;
+  idx_t header[2] = {0, 0};
   FILE *fpin;
   mesh_t *mesh;
 
@@ -203,7 +250,9 @@ mesh_t *ReadMesh(params_t *params)
 
 
   mesh->ncon = 0;
-  nfields = sscanf(line, "%"SCIDX" %"SCIDX, &(mesh->ne), &(mesh->ncon));
+  nfields = ReadHeader(line, header, 2);
+  mesh->ne = header[0];
+  mesh->ncon = header[1];
 
   if (nfields < 1) 
     errexit("The input file does not specify the number of elements.\n");
@@ -216,9 +265,15 @@ mesh_t *ReadMesh(params_t *params)
             "elements of %"PRIDX" specified in the header line.\n", nlines, mesh->ne);
 
   ncon = mesh->ncon;
+  if(ncon < 0 || ncon > 1)
+    ReaderInputError("mesh constraint count must be zero or one");
+  nweights = ReaderWeightCount(mesh->ne, ncon == 0 ? 1 : ncon);
+  if(mesh->ne == IDX_MAX || (uintmax_t)mesh->ne+1 > SIZE_MAX/sizeof(idx_t) ||
+      ntokens > SIZE_MAX/sizeof(idx_t) || (uintmax_t)ntokens > IDX_MAX)
+    ReaderInputError("mesh dimensions exceed supported allocation/index limits");
   eptr = mesh->eptr = ismalloc(mesh->ne+1, 0, "ReadMesh: eptr");
   eind = mesh->eind = imalloc(ntokens, "ReadMesh: eind");
-  ewgt = mesh->ewgt = ismalloc((ncon == 0 ? 1 : ncon)*mesh->ne, 1, "ReadMesh: ewgt");
+  ewgt = mesh->ewgt = ismalloc(nweights, 1, "ReadMesh: ewgt");
 
 
   /*----------------------------------------------------------------------
@@ -235,12 +290,7 @@ mesh_t *ReadMesh(params_t *params)
 
     /* Read element weights */
     for (l=0; l<ncon; l++) {
-      ewgt[i*ncon+l] = strtoidx(curstr, &newstr, 10);
-      if (newstr == curstr)
-        errexit("The line for vertex %"PRIDX" does not have enough weights "
-                "for the %"PRIDX" constraints.\n", i+1, ncon);
-      if (ewgt[i*ncon+l] < 0)
-        errexit("The weight for element %"PRIDX" and constraint %"PRIDX" must be >= 0\n", i+1, l);
+      ewgt[(size_t)i*(size_t)ncon+(size_t)l] = ReadWeight(curstr, &newstr);
       curstr = newstr;
     }
 

@@ -13,6 +13,21 @@ foreach(prog gpmetis ndmetis mpmetis m2gmetis graphchk cmpfillin)
 #  target_link_libraries(${prog} metis profiler)
 endforeach(prog)
 
+if(METIS_BUILD_TESTS)
+  add_executable(test_readers tests/test_readers.c io.c)
+  target_include_directories(test_readers PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+  target_link_libraries(test_readers metis)
+  foreach(reader graph mesh)
+    foreach(case valid weighted overflow negative truncated header-range
+        weight-range index-limit negative-weight)
+      add_test(NAME reader-${reader}-${case}
+        COMMAND ${CMAKE_COMMAND}
+          -DPROGRAM=$<TARGET_FILE:test_readers> -DREADER=${reader} -DCASE=${case}
+          -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/check_reader.cmake)
+    endforeach()
+  endforeach()
+endif()
+
 if(METIS_INSTALL)
   install(TARGETS gpmetis ndmetis mpmetis m2gmetis graphchk cmpfillin
     RUNTIME DESTINATION bin)

@@ -1,0 +1,32 @@
+name: Graph and mesh reader regressions
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  sanitizer-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        index-width: [32, 64]
+    steps:
+      - uses: actions/checkout@v7
+      - name: Select index width
+        run: sed -i 's/#define IDXTYPEWIDTH 32/#define IDXTYPEWIDTH ${{ matrix.index-width }}/' include/metis.h
+      - name: Configure reader tests
+        run: >-
+          cmake -S . -B build-readers
+          -DGKLIB_PATH="$PWD/GKlib" -DMETIS_BUILD_TESTS=ON
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g"
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+      - name: Build
+        run: cmake --build build-readers --parallel 2
+      - name: Test readers
+        run: ctest --test-dir build-readers --output-on-failure
