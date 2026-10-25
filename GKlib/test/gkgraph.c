@@ -234,7 +234,7 @@ void reorder_centroid(params_t *params, gk_graph_t *graph, int32_t *perm)
   gk_i32set(nvtxs, -1, perm);
   for (i=0; i<nvtxs; i++) {
     if (perm[cand[i].val] != -1)
-      errexit("Resetting perm[%d] = %d\n", cand[i].val, perm[cand[i].val]);
+      errexit("Resetting perm[%zd] = %d\n", cand[i].val, perm[cand[i].val]);
     perm[cand[i].val] = i;
   }
 
