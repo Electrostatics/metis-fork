@@ -15,6 +15,8 @@
 
 #include "metislib.h"
 
+static void RestoreMeshFNumbering(idx_t ne, idx_t *eptr, idx_t *eind);
+
 
 /*****************************************************************************/
 /*! This function creates a graph corresponding to the dual of a finite element
@@ -65,11 +67,17 @@ int METIS_MeshToDual(idx_t *ne, idx_t *nn, idx_t *eptr, idx_t *eind,
   /* create dual graph */
   *r_xadj = *r_adjncy = NULL;
   CreateGraphDual(*ne, *nn, eptr, eind, *ncommon, r_xadj, r_adjncy);
+  if (*r_xadj == NULL || *r_adjncy == NULL)
+    sigrval = SIGMEM;
 
 
 SIGTHROW:
-  if (renumber)
-    ChangeMesh2FNumbering(*ne, eptr, eind, *ne, *r_xadj, *r_adjncy);
+  if (renumber) {
+    if (*r_xadj != NULL && *r_adjncy != NULL)
+      ChangeMesh2FNumbering(*ne, eptr, eind, *ne, *r_xadj, *r_adjncy);
+    else
+      RestoreMeshFNumbering(*ne, eptr, eind);
+  }
 
   gk_siguntrap();
   gk_malloc_cleanup(0);
@@ -135,11 +143,17 @@ int METIS_MeshToNodal(idx_t *ne, idx_t *nn, idx_t *eptr, idx_t *eind,
   /* create nodal graph */
   *r_xadj = *r_adjncy = NULL;
   CreateGraphNodal(*ne, *nn, eptr, eind, r_xadj, r_adjncy);
+  if (*r_xadj == NULL || *r_adjncy == NULL)
+    sigrval = SIGMEM;
 
 
 SIGTHROW:
-  if (renumber)
-    ChangeMesh2FNumbering(*ne, eptr, eind, *nn, *r_xadj, *r_adjncy);
+  if (renumber) {
+    if (*r_xadj != NULL && *r_adjncy != NULL)
+      ChangeMesh2FNumbering(*ne, eptr, eind, *nn, *r_xadj, *r_adjncy);
+    else
+      RestoreMeshFNumbering(*ne, eptr, eind);
+  }
 
   gk_siguntrap();
   gk_malloc_cleanup(0);
@@ -153,6 +167,20 @@ SIGTHROW:
   }
 
   return metis_rcode(sigrval);
+}
+
+
+/*****************************************************************************/
+/*! Restores 1-based mesh numbering when no graph was created. */
+/*****************************************************************************/
+static void RestoreMeshFNumbering(idx_t ne, idx_t *eptr, idx_t *eind)
+{
+  idx_t i;
+
+  for (i=0; i<eptr[ne]; i++)
+    eind[i]++;
+  for (i=0; i<=ne; i++)
+    eptr[i]++;
 }
 
 
@@ -192,8 +220,11 @@ void CreateGraphDual(idx_t ne, idx_t nn, idx_t *eptr, idx_t *eind, idx_t ncommon
   /* Allocate memory for xadj, since you know its size.
      These are done using standard malloc as they are returned
      to the calling function */
-  if ((xadj = (idx_t *)malloc((ne+1)*sizeof(idx_t))) == NULL) 
+  if ((xadj = (idx_t *)malloc((ne+1)*sizeof(idx_t))) == NULL) {
+    gk_free((void **)&nptr, &nind, LTERM);
     gk_errexit(SIGMEM, "***Failed to allocate memory for xadj.\n");
+    return;
+  }
   *r_xadj = xadj;
   iset(ne+1, 0, xadj);
 
@@ -213,7 +244,9 @@ void CreateGraphDual(idx_t ne, idx_t nn, idx_t *eptr, idx_t *eind, idx_t ncommon
   if ((adjncy = (idx_t *)malloc(xadj[ne]*sizeof(idx_t))) == NULL) {
     free(xadj);
     *r_xadj = NULL;
+    gk_free((void **)&nptr, &nind, &marker, &nbrs, LTERM);
     gk_errexit(SIGMEM, "***Failed to allocate memory for adjncy.\n");
+    return;
   }
   *r_adjncy = adjncy;
 
@@ -303,8 +336,11 @@ void CreateGraphNodal(idx_t ne, idx_t nn, idx_t *eptr, idx_t *eind,
   /* Allocate memory for xadj, since you know its size.
      These are done using standard malloc as they are returned
      to the calling function */
-  if ((xadj = (idx_t *)malloc((nn+1)*sizeof(idx_t))) == NULL)
+  if ((xadj = (idx_t *)malloc((nn+1)*sizeof(idx_t))) == NULL) {
+    gk_free((void **)&nptr, &nind, LTERM);
     gk_errexit(SIGMEM, "***Failed to allocate memory for xadj.\n");
+    return;
+  }
   *r_xadj = xadj;
   iset(nn+1, 0, xadj);
 
@@ -324,7 +360,9 @@ void CreateGraphNodal(idx_t ne, idx_t nn, idx_t *eptr, idx_t *eind,
   if ((adjncy = (idx_t *)malloc(xadj[nn]*sizeof(idx_t))) == NULL) {
     free(xadj);
     *r_xadj = NULL;
+    gk_free((void **)&nptr, &nind, &marker, &nbrs, LTERM);
     gk_errexit(SIGMEM, "***Failed to allocate memory for adjncy.\n");
+    return;
   }
   *r_adjncy = adjncy;
 
