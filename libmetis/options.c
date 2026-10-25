@@ -20,6 +20,10 @@ ctrl_t *SetupCtrl(moptype_et optype, idx_t *options, idx_t ncon, idx_t nparts,
   idx_t i, j;
   ctrl_t *ctrl;
 
+  /* nparts*ncon (and nparts+1 workspace rows) are used as idx_t sizes and offsets */
+  if (ncon <= 0 || nparts <= 0 || nparts > IDX_MAX/ncon - 1)
+    return NULL;
+
   ctrl = (ctrl_t *)gk_malloc(sizeof(ctrl_t), "SetupCtrl: ctrl");
   
   memset((void *)ctrl, 0, sizeof(ctrl_t));
@@ -90,9 +94,9 @@ ctrl_t *SetupCtrl(moptype_et optype, idx_t *options, idx_t ncon, idx_t nparts,
 
   /* setup the target partition weights */
   if (ctrl->optype != METIS_OP_OMETIS) {
-    ctrl->tpwgts = rmalloc(nparts*ncon, "SetupCtrl: ctrl->tpwgts");
+    ctrl->tpwgts = rmalloc((size_t)nparts*ncon, "SetupCtrl: ctrl->tpwgts");
     if (tpwgts) {
-      rcopy(nparts*ncon, tpwgts, ctrl->tpwgts);
+      rcopy((size_t)nparts*ncon, tpwgts, ctrl->tpwgts);
     }
     else {
       for (i=0; i<nparts; i++) {
@@ -118,7 +122,7 @@ ctrl_t *SetupCtrl(moptype_et optype, idx_t *options, idx_t ncon, idx_t nparts,
   /* Allocate memory for balance multipliers. 
      Note that for PMETIS/OMETIS routines the memory allocated is more 
      than required as balance multipliers for 2 parts is sufficient. */
-  ctrl->pijbm = rmalloc(nparts*ncon, "SetupCtrl: ctrl->pijbm");
+  ctrl->pijbm = rmalloc((size_t)nparts*ncon, "SetupCtrl: ctrl->pijbm");
 
   InitRandom(ctrl->seed);
 

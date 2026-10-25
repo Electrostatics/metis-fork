@@ -41,7 +41,7 @@ void ComputePartitionInfo(params_t *params, graph_t *graph, idx_t *where)
 
 
   /* Compute constraint-related information */
-  kpwgts = ismalloc(ncon*nparts, 0, "ComputePartitionInfo: kpwgts");
+  kpwgts = ismalloc((size_t)ncon*nparts, 0, "ComputePartitionInfo: kpwgts");
 
   for (i=0; i<nvtxs; i++) {
     for (j=0; j<ncon; j++) 

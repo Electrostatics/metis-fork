@@ -97,6 +97,10 @@ int METIS_PartGraphRecursive(idx_t *nvtxs, idx_t *ncon, idx_t *xadj,
   graph_t *graph;
   ctrl_t *ctrl;
 
+  /* nvtxs*ncon is used for idx_t sizes and offsets */
+  if (*nvtxs < 0 || *ncon <= 0 || *nvtxs > IDX_MAX / *ncon)
+    return METIS_ERROR_INPUT;
+
   /* set up malloc cleaning code and signal catchers */
   if (!gk_malloc_init()) 
     return METIS_ERROR_MEMORY;

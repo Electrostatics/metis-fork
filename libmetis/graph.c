@@ -41,7 +41,7 @@ graph_t *SetupGraph(ctrl_t *ctrl, idx_t nvtxs, idx_t ncon, idx_t *xadj,
     graph->free_vwgt = 0;
   }
   else {
-    vwgt = graph->vwgt = ismalloc(ncon*nvtxs, 1, "SetupGraph: vwgt");
+    vwgt = graph->vwgt = ismalloc((size_t)ncon*nvtxs, 1, "SetupGraph: vwgt");
   }
 
   graph->tvwgt    = imalloc(ncon, "SetupGraph: tvwgts");
@@ -142,7 +142,7 @@ graph_t *SetupSplitGraph(graph_t *graph, idx_t snvtxs, idx_t snedges)
 
   /* Allocate memory for the splitted graph */
   sgraph->xadj        = imalloc(snvtxs+1, "SetupSplitGraph: xadj");
-  sgraph->vwgt        = imalloc(sgraph->ncon*snvtxs, "SetupSplitGraph: vwgt");
+  sgraph->vwgt        = imalloc((size_t)sgraph->ncon*snvtxs, "SetupSplitGraph: vwgt");
   sgraph->adjncy      = imalloc(snedges,  "SetupSplitGraph: adjncy");
   sgraph->adjwgt      = imalloc(snedges,  "SetupSplitGraph: adjwgt");
   sgraph->label	      = imalloc(snvtxs,   "SetupSplitGraph: label");

@@ -1760,7 +1760,7 @@ float gk_csr_ComputeSimilarity(gk_csr_t *mat, int i1, int i2, int what, int simt
         }
       }
       if (simtype == GK_CSR_COS)
-        sim = (stat1*stat2 > 0.0 ? sim/sqrt(stat1*stat2) : 0.0);
+        sim = ((double)stat1*stat2 > 0.0 ? sim/sqrt((double)stat1*stat2) : 0.0);
       else 
         sim = (stat1+stat2-sim > 0.0 ? sim/(stat1+stat2-sim) : 0.0);
       break;
